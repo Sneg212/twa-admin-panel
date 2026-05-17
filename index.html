@@ -2,77 +2,270 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Личный Кабинет</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { background-color: #0f0f0f; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 15px; margin: 0; }
-        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .card { background: linear-gradient(145deg, #1e1e1e, #252525); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #333; }
-        .stat-val { color: #4CAF50; font-weight: bold; font-size: 1.2em; }
-        .btn { background: #4CAF50; border: none; color: white; padding: 12px; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        .btn:active { transform: scale(0.98); background: #45a049; }
-        .btn-blue { background: #2196F3; }
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #f4f4f5);
+            --text-color: var(--tg-theme-text-color, #000000);
+            --hint-color: var(--tg-theme-hint-color, #999999);
+            --link-color: var(--tg-theme-link-color, #2481cc);
+            --btn-color: var(--tg-theme-button-color, #2481cc);
+            --btn-text-color: var(--tg-theme-button-text-color, #ffffff);
+            --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        h2, h3 { margin-top: 0; }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Grid for stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .stat-box {
+            background-color: var(--bg-color);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-box .value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            color: var(--hint-color);
+        }
+
+        /* Buttons */
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background-color: var(--btn-color);
+            color: var(--btn-text-color);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: opacity 0.2s;
+        }
+
+        button:active { opacity: 0.8; }
+        
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-success { background-color: var(--success-color); color: white; }
+        .btn-warning { background-color: var(--warning-color); color: white; }
+        .btn-outline { background-color: transparent; border: 2px solid var(--btn-color); color: var(--btn-color); }
+
+        /* Action Grid */
+        .action-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .action-grid button { margin-bottom: 0; font-size: 14px; padding: 10px; }
+
+        /* Profile Header */
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--btn-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--btn-text-color);
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .user-info .name { font-size: 18px; font-weight: bold; }
+        .user-info .role { font-size: 14px; color: var(--hint-color); }
+
+        /* Dev switch (for testing) */
+        .dev-switch {
+            text-align: center; margin-top: 20px; padding: 10px;
+            border-top: 1px solid var(--hint-color);
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h3 id="user_name">Панель Админа</h3>
+
+    <div class="profile-header">
+        <div class="avatar" id="user-avatar">👤</div>
+        <div class="user-info">
+            <div class="name" id="user-name">Загрузка...</div>
+            <div class="role" id="user-role">Пользователь</div>
+        </div>
     </div>
 
-    <div class="card">
-        <div>Баллы: <span id="points" class="stat-val">0</span></div>
-        <div>Одобрено сегодня: <span id="daily" class="stat-val">0</span></div>
-        <div>Статус: <span id="leave" style="color: #ff9800;">Загрузка...</span></div>
+    <!-- ================= ПОЛЬЗОВАТЕЛЬСКИЙ ИНТЕРФЕЙС ================= -->
+    <div id="user-panel" style="display: block;">
+        <div class="card">
+            <h3>📊 Ваша статистика</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="label">Подано объявлений</div>
+                    <div class="value">42</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Окончание КД</div>
+                    <div class="value" style="color: var(--warning-color)">1ч 15м</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Мут до</div>
+                    <div class="value">Нет</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Бан до</div>
+                    <div class="value">Нет</div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <h3>🛒 Магазин отгулов</h3>
-    <div class="card">
-        <p>Отгул на 3 часа</p>
-        <button class="btn" onclick="buy('otgul_3h', 60)">Купить (60 pts)</button>
+    <!-- ================= АДМИНСКИЙ ИНТЕРФЕЙС ================= -->
+    <div id="admin-panel" style="display: none;">
+        <div class="card">
+            <h3>🛡 Мой статус администратора</h3>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="label">Выговоры</div>
+                    <div class="value" style="color: var(--danger-color)">1 / 3</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">Предупреждения</div>
+                    <div class="value" style="color: var(--warning-color)">0 / 2</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Управление пользователями</h3>
+            <div class="action-grid">
+                <button class="btn-danger" onclick="sendAction('ban')">🚫 Выдать бан</button>
+                <button class="btn-success" onclick="sendAction('unban')">✅ Снять бан</button>
+                <button class="btn-warning" onclick="sendAction('mute')">🔇 Выдать мут</button>
+                <button class="btn-success" onclick="sendAction('unmute')">🔊 Снять мут</button>
+            </div>
+            <button class="btn-outline" style="margin-top: 8px;" onclick="sendAction('reset_stats')">🔄 Сбросить статистику</button>
+        </div>
+
+        <div class="card">
+            <h3>Система наград</h3>
+            <div class="action-grid">
+                <button onclick="sendAction('reward')">🏆 Наградить</button>
+                <button class="btn-outline" onclick="sendAction('rewards_list')">📜 Список наград</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Глобальные действия</h3>
+            <button onclick="sendAction('broadcast')">📢 Сделать рассылку</button>
+        </div>
+
+        <!-- Только для Главных Админов -->
+        <div class="card" id="super-admin-panel" style="border: 2px solid var(--warning-color);">
+            <h3>👑 Панель Главного Админа</h3>
+            <button class="btn-danger" onclick="sendAction('admin_reprimand')">⚠️ Выдать выговор админу</button>
+            <button class="btn-warning" onclick="sendAction('admin_warning')">🛑 Предупреждение админу</button>
+        </div>
     </div>
-    
-    <div class="card">
-        <p>Отпуск на 1 день</p>
-        <button class="btn btn-blue" onclick="buy('vac_1d', 100)">Купить (100 pts)</button>
+
+    <!-- Переключатель для тестирования (удалите в проде) -->
+    <div class="dev-switch">
+        <span style="color: var(--hint-color); font-size: 12px;">Тест интерфейса:</span><br>
+        <button class="btn-outline" onclick="toggleRole('user')" style="width: 48%; display: inline-block;">Пользователь</button>
+        <button class="btn-outline" onclick="toggleRole('admin')" style="width: 48%; display: inline-block;">Админ</button>
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand(); // Растянуть на весь экран
-        
-        const API_URL = "https://DimkaJopka.pythonanywhere.com"; // ТВОЙ АДРЕС НА PYTHONANYWHERE
-        let uid = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 123456; // Для теста, если открыто не в телеге
-        
-        if (tg.initDataUnsafe.user) {
-            document.getElementById('user_name').innerText = tg.initDataUnsafe.user.first_name;
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Открываем на весь экран
+
+        // Получаем данные пользователя из телеграма
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById('user-name').innerText = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+            document.getElementById('user-avatar').innerText = user.first_name.charAt(0).toUpperCase();
+        } else {
+            document.getElementById('user-name').innerText = "Гость";
         }
 
-        async function loadData() {
-            try {
-                let response = await fetch(`${API_URL}/api/admin_info/${uid}`);
-                let data = await response.json();
-                document.getElementById('points').innerText = data.points;
-                document.getElementById('daily').innerText = data.daily;
-                document.getElementById('leave').innerText = data.leave;
-            } catch (e) {
-                console.error("Ошибка загрузки данных");
-            }
-        }
-
-        async function buy(itemId, price) {
-            if (!confirm(`Купить за ${price} баллов?`)) return;
+        // Функция отправки данных обратно в бота
+        function sendAction(action) {
+            // В реальном боте вы можете использовать tg.sendData или делать AJAX/Fetch запрос на ваш сервер
+            // tg.sendData(JSON.stringify({ action: action }));
             
-            let response = await fetch(`${API_URL}/api/buy`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ uid: uid, item_id: itemId })
-            });
-            let result = await response.json();
-            alert(result.success ? "Успешно куплено!" : "Ошибка: " + result.msg);
-            loadData();
+            // Для обратной связи с пользователем:
+            tg.HapticFeedback.impactOccurred('medium');
+            
+            // Если вы используете inline кнопки, WebApp закроется и отправит данные в бот:
+            // tg.sendData(action); 
+            
+            // Временный алерт для демонстрации
+            tg.showAlert(`Действие "${action}" отправлено боту. В боте появится меню для ввода ID пользователя.`);
         }
 
-        loadData();
+        // Функция переключения ролей (ДЛЯ ТЕСТИРОВАНИЯ)
+        function toggleRole(role) {
+            const userPanel = document.getElementById('user-panel');
+            const adminPanel = document.getElementById('admin-panel');
+            const roleText = document.getElementById('user-role');
+
+            if (role === 'admin') {
+                userPanel.style.display = 'none';
+                adminPanel.style.display = 'block';
+                roleText.innerText = 'Главный Администратор';
+                roleText.style.color = 'var(--danger-color)';
+            } else {
+                userPanel.style.display = 'block';
+                adminPanel.style.display = 'none';
+                roleText.innerText = 'Пользователь';
+                roleText.style.color = 'var(--hint-color)';
+            }
+            tg.HapticFeedback.selectionChanged();
+        }
+
+        // Сообщаем телеграму, что Web App готов к отображению
+        tg.ready();
     </script>
 </body>
 </html>
